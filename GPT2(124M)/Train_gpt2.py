@@ -248,10 +248,10 @@ torch.set_float32_matmul_precision('high')
 
 model = GPT(GPTConfig())
 model.to(device)
-model = torch.compile(model) # windows not supported yet
+#model = torch.compile(model) # windows not supported yet
 
 # logits, loss = model(x, y)
-optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, betas = (0.9, 0.95), eps = 1e-8)
 for i in range(50):
     t0 = time.time()
     x, y = train_loader.next_batch()
@@ -260,12 +260,13 @@ for i in range(50):
     with torch.autocast(device_type = device, dtype = torch.bfloat16):
         logits, loss = model(x, y)
     loss.backward()
+    norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
     optimizer.step()
     torch.cuda.synchronize()
     t1 = time.time()
     dt = (t1 - t0)*1000 # in milliseconds
     tokens_per_sec = (train_loader.B * train_loader.T) / (t1 - t0)
-    print(f"iter {i}, loss: {loss.item()}, time taken: {dt:.2f}ms, tokens per second: {tokens_per_sec:.2f}")
+    print(f"iter {i}, loss: {loss.item()}, norm: {norm:.4f}, time taken: {dt:.2f}ms, tokens per second: {tokens_per_sec:.2f}")
     
 import sys; sys.exit(0)
 
