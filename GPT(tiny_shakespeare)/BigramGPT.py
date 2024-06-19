@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+import argparse
 
 # hyperparameters
 batch_size = 64 # how many independent sequences will we process in parallel?
@@ -194,23 +195,34 @@ class GPTLanguageModel(nn.Module):
             # append sampled index to the running sequence
             idx = torch.cat((idx, idx_next), dim=1) # (B, T+1)
         return idx
+    
+def parse_model_path():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model_path', type=str, default='model.pth', help='path to the model file')
+    args = parser.parse_args()
+    return args.model_path
 
 if __name__ == '__main__':
     model = GPTLanguageModel()
     m = model.to(device)
+    model_path = parse_model_path()
+    print(model_path)
     # print the number of parameters in the model
     print(sum(p.numel() for p in m.parameters())/1e6, 'M parameters')
 
     # create a PyTorch optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
+    best_val_loss = float('inf')
     for iter in range(max_iters):
 
         # every once in a while evaluate the loss on train and val sets
         if iter % eval_interval == 0 or iter == max_iters - 1:
             losses = estimate_loss()
             print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['val']:.4f}")
-
+            if losses['val'] < best_val_loss:
+                best_val_loss = losses['val']
+                torch.save(model.state_dict(), model_path)
         # sample a batch of data
         xb, yb = get_batch('train')
 
@@ -219,6 +231,4 @@ if __name__ == '__main__':
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
-
-    torch.save(model.state_dict(), 'model.pth')
 # model is saved, now we can load it back

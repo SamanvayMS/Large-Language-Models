@@ -9,4 +9,11 @@ GPT encoder model trained on ~300K character based tokens.
 - [Documentation](GPT(tiny_shakespeare)/README.md)
 
 ### Tokenizer(GPT2)
+Tokenizer based on BPE and regex tokenization similar to that of the GPT series from OpenAI.
+
+- [Directory](Tokenizer)
+- [Documentation](Tokenizer/README.md)
+
+### GPT2 Model
+
 
